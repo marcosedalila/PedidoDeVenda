@@ -7,7 +7,8 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Buttons, Vcl.Grids,
   Vcl.DBGrids, uDmPedidoVenda, Data.DB, uClienteModelo, uClienteControle,
   uProdutoModelo, uProdutoControle, ItensPedidoModelo, uPedidoModelo,
-  uItensPedidoControle, uPedidoControle, System.Generics.Collections, Data.DBXCommon;
+  uItensPedidoControle, uPedidoControle, System.Generics.Collections, Data.DBXCommon,
+  Datasnap.DBClient;
 
 type
   TfrmPedidoVenda = class(TForm)
@@ -56,6 +57,7 @@ type
     { Public declarations }
     dQtdTotal: double;
     bPesquisar : Boolean;
+    ContChave : integer;
     property ListaItensPedido: TObjectList<TItensPedido> read FListaItensPedido write FListaItensPedido;
     function ValidarCampos(out sMensagem: string): Boolean;
   end;
@@ -71,30 +73,43 @@ procedure TfrmPedidoVenda.btnAddClick(Sender: TObject);
 var
   i : integer;
   sMensagem : string;
+  iPosicao : integer;
 begin
 
   sMensagem := '';
+  ContChave := ContChave + 1;
   if not (ValidarCampos(sMensagem)) then
   begin
     MessageDlg(sMensagem, mtInformation, [mbOk], 0, mbOk);
   end
   else
   begin
-
     if (dsDadosPedido.DataSet.RecordCount > 0) and (dsDadosPedido.DataSet.State in [dsEdit]) then
     begin
       dsDadosPedido.DataSet.Post;
+
+      for iPosicao := 0 to Pred(ListaItensPedido.Count) do
+      begin
+        if (ListaItensPedido[iPosicao].Chave = dmPedidoVenda.cdsDadosPedido.FieldByName('Chave').AsInteger) then
+        begin
+           ListaItensPedido[iPosicao].Qtd := dsDadosPedido.DataSet.FieldByName('Qtd').AsInteger;
+           ListaItensPedido[iPosicao].ValorUnit := dsDadosPedido.DataSet.FieldByName('ValorUnit').AsFloat;
+           ListaItensPedido[iPosicao].ValorTotal := dsDadosPedido.DataSet.FieldByName('ValorTotal').AsFloat;
+        end;
+      end;
     end
     else
     begin
       ListaItensPedido.Add(TItensPedido.Create);
       i := ListaItensPedido.Count -1;
+      ListaItensPedido[i].Chave := ContChave;
       ListaItensPedido[i].Produto := StrToInt(edCodigoProduto.Text);
       ListaItensPedido[i].Qtd := StrToInt(edQuantidade.Text);
       ListaItensPedido[i].ValorUnit := StrToFloat(edValorUnit.Text);
       ListaItensPedido[i].ValorTotal := (StrToInt(edQuantidade.Text) * StrToFloat(edValorUnit.Text));
 
       dsDadosPedido.DataSet.Append;
+      dsDadosPedido.DataSet.FieldByName('Chave').AsInteger := ContChave;
       dsDadosPedido.DataSet.FieldByName('Codigo').AsInteger := ListaItensPedido[i].Produto;
       dsDadosPedido.DataSet.FieldByName('Produto').AsString := edDescricaoProduto.Text;
       dsDadosPedido.DataSet.FieldByName('Qtd').AsInteger := ListaItensPedido[i].Qtd;
@@ -121,25 +136,28 @@ begin
   end
   else
   begin
-    try
-      oPedidoControle := TPedidoControle.Create;
+    if MessageDlg('Deseja realmente excluir esse pedido?', mtConfirmation, [mbYes,mbNo],0) = mrYes then
+    begin
+      try
+        oPedidoControle := TPedidoControle.Create;
 
-      dbx := dmPedidoVenda.sqlConexao.DBXConnection.BeginTransaction(TDBXIsolations.ReadCommitted);
+        dbx := dmPedidoVenda.sqlConexao.DBXConnection.BeginTransaction(TDBXIsolations.ReadCommitted);
 
-      if not (oPedidoControle.ExcluirPedido(StrToInt(edExcluirPedido.Text), sMensagem)) then
-      begin
-        Exit;
-      end;
+        if not (oPedidoControle.ExcluirPedido(StrToInt(edExcluirPedido.Text), sMensagem)) then
+        begin
+          Exit;
+        end;
 
-      dmPedidoVenda.sqlConexao.DBXConnection.CommitFreeAndNil(dbx);
+        dmPedidoVenda.sqlConexao.DBXConnection.CommitFreeAndNil(dbx);
 
-      MessageDlg('Pedido de venda excluído com sucesso!', mtInformation, [mbOk], 0, mbOk);
-      btnLimparClick(btnLimpar);
-    except on
-      e: exception do
-      begin
-        raise Exception.Create(sMensagem);
-        dmPedidoVenda.sqlConexao.DBXConnection.RollbackFreeAndNil(dbx);
+        MessageDlg('Pedido de venda excluído com sucesso!', mtInformation, [mbOk], 0, mbOk);
+        btnLimparClick(btnLimpar);
+      except on
+        e: exception do
+        begin
+          raise Exception.Create(sMensagem);
+          dmPedidoVenda.sqlConexao.DBXConnection.RollbackFreeAndNil(dbx);
+        end;
       end;
     end;
   end;
@@ -192,11 +210,15 @@ begin
 
       MessageDlg('Pedido de venda gravado com sucesso!', mtInformation, [mbOk], 0, mbOk);
       btnLimparClick(btnLimpar);
+      edCodigoClienteExit(edCodigoCliente);
 
       FreeAndNil(oPedido);
       FreeAndNil(oPedidoControle);
       FreeAndNil(oItensPedido);
       FreeAndNil(oItensPedidoControle);
+      ListaItensPedido.Free;
+      ListaItensPedido := nil;
+      FListaItensPedido := TObjectList<TItensPedido>.Create;
 
     except on
       e: exception do
@@ -309,10 +331,13 @@ begin
   dQtdTotal := 0;
   lblTotalPedido.Caption := '0.00';
   bPesquisar := false;
+  ContChave := 0;
 end;
 
 procedure TfrmPedidoVenda.gdDadosPedidoKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
+var
+  iPosicao : integer;
 begin
   if Key = VK_DELETE then
   begin
@@ -320,8 +345,16 @@ begin
     begin
       dQtdTotal := (dQtdTotal - dmPedidoVenda.cdsDadosPedido.FieldByName('ValorTotal').AsFloat);
       lblTotalPedido.Caption := FormatFloat('#,##0.00', dQtdTotal);
-      dmPedidoVenda.cdsDadosPedido.Delete;
 
+      for iPosicao := 0 to Pred(ListaItensPedido.Count) do
+      begin
+        if (ListaItensPedido[iPosicao].Chave = dmPedidoVenda.cdsDadosPedido.FieldByName('Chave').AsInteger) then
+        begin
+           ListaItensPedido.Delete(iPosicao);
+           Break;
+        end;
+      end;
+      dmPedidoVenda.cdsDadosPedido.Delete;
     end;
   end;
 

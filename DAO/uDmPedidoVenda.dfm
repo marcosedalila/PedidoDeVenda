@@ -2,7 +2,7 @@ object dmPedidoVenda: TdmPedidoVenda
   OldCreateOrder = False
   OnCreate = DataModuleCreate
   Height = 363
-  Width = 878
+  Width = 694
   object dspPesqCliente: TDataSetProvider
     DataSet = sqlPesqCliente
     Options = [poAllowCommandText, poUseQuoteChar]
@@ -71,13 +71,13 @@ object dmPedidoVenda: TdmPedidoVenda
       'Encrypted=False'
       'ConnectTimeout=60')
     Connected = True
-    Left = 672
-    Top = 48
+    Left = 536
+    Top = 56
   end
   object FDPhysMySQLDriverLink: TFDPhysMySQLDriverLink
     VendorLib = 'D:\ARQUIVOS\Prova_Sistema_PEDIDOVENDA\dll\libmysql.dll'
-    Left = 672
-    Top = 128
+    Left = 536
+    Top = 136
   end
   object dspPesqProduto: TDataSetProvider
     DataSet = sqlPesqProduto
@@ -113,12 +113,36 @@ object dmPedidoVenda: TdmPedidoVenda
       FieldName = 'Pco_Venda'
     end
   end
+  object dspPedido: TDataSetProvider
+    DataSet = sqlPedido
+    Options = [poAllowCommandText, poUseQuoteChar]
+    Left = 296
+    Top = 120
+  end
+  object sqlPedido: TSQLDataSet
+    MaxBlobSize = -1
+    Params = <>
+    SQLConnection = sqlConexao
+    Left = 296
+    Top = 48
+  end
+  object cdsPedido: TClientDataSet
+    Aggregates = <>
+    Params = <>
+    ProviderName = 'dspPedido'
+    Left = 296
+    Top = 192
+  end
   object cdsDadosPedido: TClientDataSet
     Aggregates = <>
     AggregatesActive = True
     Params = <>
-    Left = 280
-    Top = 48
+    Left = 415
+    Top = 51
+    object cdsDadosPedidoChave: TIntegerField
+      FieldName = 'Chave'
+      ProviderFlags = []
+    end
     object cdsDadosPedidoCodigo: TIntegerField
       FieldName = 'Codigo'
     end
@@ -137,25 +161,5 @@ object dmPedidoVenda: TdmPedidoVenda
     object cdsDadosPedidoValorTotal: TSingleField
       FieldName = 'ValorTotal'
     end
-  end
-  object dspPedido: TDataSetProvider
-    DataSet = sqlPedido
-    Options = [poAllowCommandText, poUseQuoteChar]
-    Left = 384
-    Top = 120
-  end
-  object sqlPedido: TSQLDataSet
-    MaxBlobSize = -1
-    Params = <>
-    SQLConnection = sqlConexao
-    Left = 384
-    Top = 48
-  end
-  object cdsPedido: TClientDataSet
-    Aggregates = <>
-    Params = <>
-    ProviderName = 'dspPedido'
-    Left = 384
-    Top = 192
   end
 end

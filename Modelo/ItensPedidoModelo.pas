@@ -10,7 +10,9 @@ type
     FValorUnit: double;
     FCodigo: integer;
     FValorTotal: double;
+    FChave: integer;
   public
+    property Chave: integer read FChave write FChave;
     property Codigo: integer read FCodigo write FCodigo;
     property Produto: integer read FProduto write FProduto;
     property Qtd: integer read FQtd write FQtd;
